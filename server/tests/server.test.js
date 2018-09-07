@@ -109,3 +109,35 @@ describe('GET /todos/:id', () => {
     done();
   });
 });
+
+describe('DELETE /todos/:id', () => {
+  it('should return 404 if ID malformed', (done) => {
+    request(app)
+      .delete('/todos/where-is-the-beef')
+      .expect(404)
+      .expect(res => {
+        expect(res.body).toNotExist;
+      })
+      .end(done);
+  });
+
+  it('should return 404 if ID okay but no TODO exists', (done) => {
+    request(app)
+      .delete('/todos/000000000000000000000000')
+      .expect(404)
+      .expect(res => {
+        expect(res.body).toNotExist;
+      })
+      .end(done);
+  });
+
+  it ('should return a 200, if it exists and was deleted', (done) => {
+    request(app)
+      .delete('/todos/DEADBEEFDEADBEEFDEADBEEF')
+      .expect(200)
+      .expect(res => {
+        expect(res.body.todo.text).toBe('Something thingered');
+      })
+      .end(done);
+  });
+});
