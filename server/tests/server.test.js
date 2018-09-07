@@ -132,12 +132,22 @@ describe('DELETE /todos/:id', () => {
   });
 
   it ('should return a 200, if it exists and was deleted', (done) => {
+    var idToDelete = 'DEADBEEFDEADBEEFDEADBEEF'
     request(app)
-      .delete('/todos/DEADBEEFDEADBEEFDEADBEEF')
+      .delete(`/todos/${idToDelete}`)
       .expect(200)
       .expect(res => {
         expect(res.body.todo.text).toBe('Something thingered');
       })
-      .end(done);
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(idToDelete).then(ghostTodo => {
+          expect(ghostTodo).toNotExist;
+          return done();
+        }).catch(e => done(e));
+      });
   });
 });
