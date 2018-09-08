@@ -9,7 +9,13 @@ const todos = [{
   _id: new ObjectId('DEADBEEFDEADBEEFDEADBEEF'),
   text: 'Something thingered'
 }, {
+  _id: new ObjectId('123412341234123412341234'),
   text: 'This is a thing also'
+}, {
+  _id: new ObjectId('567856785678567856785678'),
+  text: 'This thing got completed',
+  completed: true,
+  completed: 42
 }];
 
 describe('POST /todos', () =>{
@@ -54,7 +60,7 @@ describe('POST /todos', () =>{
         }
 
         Todo.find().then(todos => {
-          expect(todos.length).toBe(2);
+          expect(todos.length).toBe(3);
           done();
         }).catch(e => done(e));
       });
@@ -67,7 +73,7 @@ describe('GET /todos', () => {
       .get('/todos')
       .expect(200)
       .expect(res => {
-        expect(res.body.todos.length).toBe(2);
+        expect(res.body.todos.length).toBe(3);
       })
       .end(done);
   })
@@ -148,6 +154,116 @@ describe('DELETE /todos/:id', () => {
           expect(ghostTodo).toNotExist;
           return done();
         }).catch(e => done(e));
+      });
+  });
+});
+
+describe('PATCH /todos/:id', () => {
+  it('should return 404 if ID malformed', (done) => {
+    request(app)
+      .patch('/todos/where-is-the-beef')
+      .expect(404)
+      .expect(res => {
+        expect(res.body).toNotExist;
+      })
+      .end(done);
+  });
+
+  it('should return 404 if ID okay but no TODO exists', (done) => {
+    request(app)
+      .patch('/todos/000000000000000000000000')
+      .expect(404)
+      .expect(res => {
+        expect(res.body).toNotExist;
+      })
+      .end(done);
+  });
+
+  it('should not update anything if no properties included in body', (done) => {
+    var updateId = '123412341234123412341234';
+    request(app)
+      .patch(`/todos/${updateId}`)
+      .send({ garbage: 'blood' })
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(updateId).then(todo => {
+          expect(todo.text).toBe('This is a thing also')
+          expect(todo.completed).toBe(false);
+          expect(todo.completedAt).toBeNull;
+          done();
+        }).catch(e => {
+          return done(e);
+        })
+      });
+  });
+
+  it('should update text, if specified', (done) => {
+    var updateId = '123412341234123412341234';
+    request(app)
+      .patch(`/todos/${updateId}`)
+      .send({ text: 'Do the doo doo doot doo' })
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(updateId).then(todo => {
+          expect(todo.text).toBe('Do the doo doo doot doo')
+          expect(todo.completed).toBe(false);
+          expect(todo.completedAt).toBeNull;
+          done();
+        }).catch(e => {
+          return done(e);
+        });
+      });
+  });
+
+  it('should update completedAt, if completed set to true', (done) => {
+    var updateId = '123412341234123412341234';
+    request(app)
+      .patch(`/todos/${updateId}`)
+      .send({ completed: true })
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(updateId).then(todo => {
+          expect(todo.text).toBe('Do the doo doo doot doo')
+          expect(todo.completed).toBeTrue;
+          expect(todo.completedAt).not.toBeNull;
+          done();
+        }).catch(e => {
+          return done(e);
+        });
+      });
+  });
+
+  it('should null completedAt, if completed set to false', (done) => {
+    var updateId = '567856785678567856785678';
+    request(app)
+      .patch(`/todos/${updateId}`)
+      .send({ completed: false })
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(updateId).then(todo => {
+          expect(todo.text).toBe('This thing got completed')
+          expect(todo.completed).toBeFalse;
+          expect(todo.completedAt).toBeNull;
+          done();
+        }).catch(e => {
+          return done(e);
+        });
       });
   });
 });
