@@ -4,6 +4,7 @@ const {ObjectId} = require('mongodb');
 
 const {app} = require('../server');
 const {Todo} = require('../models/todo');
+const {User} = require('../models/user');
 
 const todos = [{
   _id: new ObjectId('DEADBEEFDEADBEEFDEADBEEF'),
@@ -161,7 +162,7 @@ describe('DELETE /todos/:id', () => {
 describe('PATCH /todos/:id', () => {
   it('should return 404 if ID malformed', (done) => {
     request(app)
-      .patch('/todos/where-is-the-beef')
+      .patch('/todos/whereisthebeef')
       .expect(404)
       .expect(res => {
         expect(res.body).toNotExist;
@@ -265,5 +266,126 @@ describe('PATCH /todos/:id', () => {
           return done(e);
         });
       });
+  });
+});
+
+describe('POST /users', () => {
+
+  beforeEach((done) => {
+    User.remove({}).then(() => done());
+  });
+
+  it('should create a new user', (done) => {
+    var email = 'iamanidiot@email.me';
+    var password = '123456';
+
+    request(app)
+      .post('/users/')
+      .send({
+        email: email,
+        password: password,
+      })
+      .expect(200)
+      .expect(res => {
+        expect(res.body.email).toBe(email);
+        expect(res.body.password).toBeUndefined;
+        expect(res.headers["x-auth"]).not.toBeNull;
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        User.findOne({email}).then(user => {
+          expect(user.email).toBe(email);
+          expect(user.password).toBe(password);
+          done();
+        }).catch(e => {
+          done(e);
+        })
+      });
+  });
+
+  it('should return a 400 if you try to create a user with a duplicate email', done => {
+    var email = "jabberhead@chowder.de";
+    request(app)
+      .post('/users/')
+      .send({
+        email,
+        password: 'onepassword'
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        request(app)
+          .post('/users/')
+          .send({
+            email,
+            password: 'thisisanotherpassword'
+          })
+          .expect(400)
+          .end((err, res) => {
+            if (err) {
+              return done(err);
+            }
+
+            User.find({email}).then(users => {
+              expect(users).toNotExist;
+              done();
+            }).catch(e => {
+              done(e);
+            });
+          });
+      });
+  });
+
+  it('should return a 400 for an invalid email', done => {
+    var invalidEmail = "roottoottoot"
+    request(app)
+      .post('/users/')
+      .send({
+        invalidEmail,
+        password: 'thisisanotherpassword'
+      })
+      .expect(400)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        User.find({invalidEmail}).then(users => {
+          expect(users).toNotExist;
+          done();
+        }).catch(e => {
+          done(e);
+        });
+      });
+  });
+
+  it('should return a 400 if the email is too short', done => {
+    var invalidEmail = "ami4"
+    request(app)
+      .post('/users/')
+      .send({
+        invalidEmail,
+        password: 'thisisanotherpassword'
+      })
+      .expect(400)
+      .end(done);
+  });
+
+  it('should return a 400 if the password is too short', done => {
+    var email = "shibby@dude.ranch";
+    var invalidPassword = "passw";
+    request(app)
+      .post('/users/')
+      .send({
+        email,
+        invalidPassword
+      })
+      .expect(400)
+      .end(done);
   });
 });
