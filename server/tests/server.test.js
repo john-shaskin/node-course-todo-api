@@ -290,6 +290,8 @@ describe('POST /users', () => {
         expect(res.body.email).toBe(email);
         expect(res.body.password).toBeUndefined;
         expect(res.headers["x-auth"]).not.toBeNull;
+        expect(res.body.tokens).toNotExist;
+        expect(res.body.password).toNotExist;
       })
       .end((err, res) => {
         if (err) {
