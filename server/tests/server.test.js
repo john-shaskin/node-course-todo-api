@@ -5,6 +5,7 @@ const {ObjectId} = require('mongodb');
 const {app} = require('../server');
 const {Todo} = require('../models/todo');
 const {User} = require('../models/user');
+const bcrypt = require('bcryptjs');
 
 const todos = [{
   _id: new ObjectId('DEADBEEFDEADBEEFDEADBEEF'),
@@ -300,8 +301,14 @@ describe('POST /users', () => {
 
         User.findOne({email}).then(user => {
           expect(user.email).toBe(email);
-          expect(user.password).toBe(password);
-          done();
+          expect(user.password).not.toBeNull;
+          bcrypt.compare(password, user.password, (err, res) => {
+            if (err) {
+              done(err);
+            }
+            expect(res).toBeTrue;
+            done();
+          });
         }).catch(e => {
           done(e);
         })

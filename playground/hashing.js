@@ -1,15 +1,28 @@
 const {SHA256} = require('crypto-js');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
-var data = {
-  id: 55
-};
+var password = 'TheDumbPassword';
 
-var token = jwt.sign(data, 'barfybarfbarf');
-console.log(token);
+// bcrypt.genSalt(10, (err, salt) => {
+//   bcrypt.hash(password, salt, (err, hash) => {
+//     console.log(hash);
+//   });
+// });
 
-var decoded = jwt.verify(token, 'barfybarfbarf');
-console.log('decoded', decoded);
+var hashedPassword = '$2a$10$GLOYAglcPHoIf4x4VtG12e9CHZ2p3f6qwVk7DGrC4YvA4Pi.p2Y7G';
+bcrypt.compare('thiesdfss', hashedPassword, (err, res) => {
+  console.log(res);
+})
+// var data = {
+//   id: 55
+// };
+//
+// var token = jwt.sign(data, 'barfybarfbarf');
+// console.log(token);
+//
+// var decoded = jwt.verify(token, 'barfybarfbarf');
+// console.log('decoded', decoded);
 
 // var message = 'This is the dumbest string';
 // var hash = SHA256(message).toString();
