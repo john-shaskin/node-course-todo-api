@@ -4,28 +4,13 @@ const {ObjectId} = require('mongodb');
 
 const {app} = require('../server');
 const {Todo} = require('../models/todo');
+const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 const {User} = require('../models/user');
 const bcrypt = require('bcryptjs');
 
-const todos = [{
-  _id: new ObjectId('DEADBEEFDEADBEEFDEADBEEF'),
-  text: 'Something thingered'
-}, {
-  _id: new ObjectId('123412341234123412341234'),
-  text: 'This is a thing also'
-}, {
-  _id: new ObjectId('567856785678567856785678'),
-  text: 'This thing got completed',
-  completed: true,
-  completed: 42
-}];
-
 describe('POST /todos', () =>{
-  beforeEach((done) => {
-    Todo.remove({}).then(() => {
-      return Todo.insertMany(todos);
-    }).then(() => done());
-  });
+  beforeEach(populateTodos);
+  beforeEach(populateUsers);
 
   it('should create a new TODO', (done) => {
     var text = 'Fart';
@@ -272,10 +257,6 @@ describe('PATCH /todos/:id', () => {
 
 describe('POST /users', () => {
 
-  beforeEach((done) => {
-    User.remove({}).then(() => done());
-  });
-
   it('should create a new user', (done) => {
     var email = 'iamanidiot@email.me';
     var password = '123456';
@@ -302,6 +283,9 @@ describe('POST /users', () => {
         User.findOne({email}).then(user => {
           expect(user.email).toBe(email);
           expect(user.password).not.toBeNull;
+          expect(user.tokens.length).toBe(1);
+          expect(user.tokens[0].access).toBe('auth');
+          expect(user.tokens[0].token).not.toBeNull;
           bcrypt.compare(password, user.password, (err, res) => {
             if (err) {
               done(err);
@@ -316,37 +300,24 @@ describe('POST /users', () => {
   });
 
   it('should return a 400 if you try to create a user with a duplicate email', done => {
-    var email = "jabberhead@chowder.de";
+    var duplicateEmail = users[0].email;
     request(app)
       .post('/users/')
       .send({
-        email,
-        password: 'onepassword'
+        email: duplicateEmail,
+        password: 'thisisanotherpassword'
       })
+      .expect(400)
       .end((err, res) => {
         if (err) {
           return done(err);
         }
-
-        request(app)
-          .post('/users/')
-          .send({
-            email,
-            password: 'thisisanotherpassword'
-          })
-          .expect(400)
-          .end((err, res) => {
-            if (err) {
-              return done(err);
-            }
-
-            User.find({email}).then(users => {
-              expect(users).toNotExist;
-              done();
-            }).catch(e => {
-              done(e);
-            });
-          });
+        User.find({email: duplicateEmail}).then(users => {
+          expect(users.length).toBe(1);
+          done();
+        }).catch(e => {
+          done(e);
+        });
       });
   });
 
@@ -395,6 +366,30 @@ describe('POST /users', () => {
         invalidPassword
       })
       .expect(400)
+      .end(done);
+  });
+});
+
+describe('GET /users/me', () => {
+  it('should return a user if authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      .set('x-auth', users[0].tokens[0].token)
+      .expect(200)
+      .expect(res => {
+        expect(res.body._id).toBe(users[0]._id.toHexString());
+        expect(res.body.email).toBe(users[0].email);
+      })
+      .end(done);
+  });
+
+  it('should return a 401 if not authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      .expect(401)
+      .expect(res => {
+        expect(res.body).toNotExist;
+      })
       .end(done);
   });
 });
