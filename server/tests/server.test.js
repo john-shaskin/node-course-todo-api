@@ -256,6 +256,8 @@ describe('PATCH /todos/:id', () => {
 });
 
 describe('POST /users', () => {
+  beforeEach(populateTodos);
+  beforeEach(populateUsers);
 
   it('should create a new user', (done) => {
     var email = 'iamanidiot@email.me';
@@ -271,7 +273,7 @@ describe('POST /users', () => {
       .expect(res => {
         expect(res.body.email).toBe(email);
         expect(res.body.password).toBeUndefined;
-        expect(res.headers["x-auth"]).not.toBeNull;
+        expect(res.headers["x-auth"]).toExist;
         expect(res.body.tokens).toNotExist;
         expect(res.body.password).toNotExist;
       })
@@ -338,9 +340,7 @@ describe('POST /users', () => {
         User.find({invalidEmail}).then(users => {
           expect(users).toNotExist;
           done();
-        }).catch(e => {
-          done(e);
-        });
+        }).catch(e => done(e));
       });
   });
 
@@ -371,6 +371,9 @@ describe('POST /users', () => {
 });
 
 describe('GET /users/me', () => {
+  beforeEach(populateTodos);
+  beforeEach(populateUsers);
+
   it('should return a user if authenticated', (done) => {
     request(app)
       .get('/users/me')
@@ -391,5 +394,58 @@ describe('GET /users/me', () => {
         expect(res.body).toNotExist;
       })
       .end(done);
+  });
+});
+
+describe('POST /users/login', () => {
+  beforeEach(populateTodos);
+  beforeEach(populateUsers);
+
+  it('should login user and return auth token', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: users[1].password
+      })
+      .expect(200)
+      .expect(res => {
+        expect(res.headers['x-auth']).toExist;
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        User.findById(users[1]._id).then(user => {
+          expect(user.toObject().tokens[0]).toMatchObject({
+            access: 'auth',
+            token: res.headers['x-auth']
+          });
+          done();
+        }).catch(e => done(e));
+      });
+  });
+
+  it('should return a 400 on invalid credentials', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: 'cecinestpasunmotdepasse'
+      })
+      .expect(400)
+      .expect(res => {
+        expect(res.headers['x-auth']).not.toExist;
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        User.findById(users[1]._id).then(user => {
+          expect(user.tokens.length).toBe(0);
+          done();
+        }).catch(e => done(e));
+      });
   });
 });

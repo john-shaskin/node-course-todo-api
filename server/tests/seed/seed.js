@@ -46,10 +46,9 @@ const populateUsers = (done) => {
 
     return Promise.all([user1, user2]);
   }).then(() => {
-    console.log('Saved the seed users');
     done();
   }).catch(e => {
-    log('Error saving users', e);
+    console.log('Error saving users', e);
   });
 };
 
