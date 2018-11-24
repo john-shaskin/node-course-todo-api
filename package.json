@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node server/server.js",
+    "lint": "eslint .",
+    "pretest": "npm run lint",
     "test": "export NODE_ENV=test || SET \"NODE_ENV=test\" && mocha server/**/*.test.js",
     "test:watch": "nodemon -x \"npm test\""
   },
@@ -26,6 +28,11 @@
   },
   "devDependencies": {
     "debug": "^2.6.9",
+    "eslint": "^5.9.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.2",
+    "eslint-plugin-react": "^7.11.1",
     "expect": "^23.2.0",
     "mocha": "^5.2.0",
     "nodemon": "^1.17.5",
